@@ -176,10 +176,10 @@ package body Hindley_Milner is
    begin
       if T1.Kind = Kind_Arrow and then T2.Kind = Kind_Arrow then
          declare
-            S1 : constant Substitution := Unify (T1.Left, T2.Left);
-            S2 : constant Substitution := Unify (Apply (S1, T1.Right), Apply (S1, T2.Right));
+            Subst1 : constant Substitution := Unify (T1.Left, T2.Left);
+            Subst2 : constant Substitution := Unify (Apply (Subst1, T1.Right), Apply (Subst1, T2.Right));
          begin
-            return Compose (S2, S1);
+            return Compose (Subst2, Subst1);
          end;
       elsif T1.Kind = Kind_Var then
          return Bind (T1.Id, T2);
@@ -229,15 +229,15 @@ package body Hindley_Milner is
 
          when Expr_App =>
             declare
-               Res1  : constant Inference_Result := Algorithm_W (Ctx, Env, E.Func);
-               Env1  : constant Environment      := Apply (Res1.Subst, Env);
-               Res2  : constant Inference_Result := Algorithm_W (Ctx, Env1, E.Arg);
-               T_Var : constant Type_Ref         := Fresh_Var (Ctx);
-               Arrow : constant Type_Ref         := Make_Arrow_Type (Res2.T, T_Var);
-               S3    : constant Substitution     := Unify (Apply (Res2.Subst, Res1.T), Arrow);
+               Res1   : constant Inference_Result := Algorithm_W (Ctx, Env, E.Func);
+               Env1   : constant Environment      := Apply (Res1.Subst, Env);
+               Res2   : constant Inference_Result := Algorithm_W (Ctx, Env1, E.Arg);
+               T_Var  : constant Type_Ref         := Fresh_Var (Ctx);
+               Arrow  : constant Type_Ref         := Make_Arrow_Type (Res2.T, T_Var);
+               Subst3 : constant Substitution     := Unify (Apply (Res2.Subst, Res1.T), Arrow);
             begin
-               return (Subst => Compose (S3, Compose (Res2.Subst, Res1.Subst)),
-                       T     => Apply (S3, T_Var));
+               return (Subst => Compose (Subst3, Compose (Res2.Subst, Res1.Subst)),
+                       T     => Apply (Subst3, T_Var));
             end;
 
          when Expr_Abs =>
@@ -289,46 +289,46 @@ package body Hindley_Milner is
 
          when Expr_App =>
             declare
-               Beta  : constant Type_Ref     := Fresh_Var (Ctx);
-               Arrow : constant Type_Ref     := Make_Arrow_Type (Beta, Expected);
-               S1    : constant Substitution := Algorithm_M (Ctx, Env, E.Func, Arrow);
-               Env1  : constant Environment  := Apply (S1, Env);
-               S2    : constant Substitution := Algorithm_M (Ctx, Env1, E.Arg, Apply (S1, Beta));
+               Beta   : constant Type_Ref     := Fresh_Var (Ctx);
+               Arrow  : constant Type_Ref     := Make_Arrow_Type (Beta, Expected);
+               Subst1 : constant Substitution := Algorithm_M (Ctx, Env, E.Func, Arrow);
+               Env1   : constant Environment  := Apply (Subst1, Env);
+               Subst2 : constant Substitution := Algorithm_M (Ctx, Env1, E.Arg, Apply (Subst1, Beta));
             begin
-               return Compose (S2, S1);
+               return Compose (Subst2, Subst1);
             end;
 
          when Expr_Abs =>
             declare
-               Beta1 : constant Type_Ref     := Fresh_Var (Ctx);
-               Beta2 : constant Type_Ref     := Fresh_Var (Ctx);
-               Arrow : constant Type_Ref     := Make_Arrow_Type (Beta1, Beta2);
-               S1    : constant Substitution := Unify (Arrow, Expected);
-               Env1  : Environment           := Apply (S1, Env);
-               P     : constant Poly_Type    := (Bound => Var_Sets.Empty_Set, T => Apply (S1, Beta1));
+               Beta1  : constant Type_Ref     := Fresh_Var (Ctx);
+               Beta2  : constant Type_Ref     := Fresh_Var (Ctx);
+               Arrow  : constant Type_Ref     := Make_Arrow_Type (Beta1, Beta2);
+               Subst1 : constant Substitution := Unify (Arrow, Expected);
+               Env1   : Environment           := Apply (Subst1, Env);
+               P      : constant Poly_Type    := (Bound => Var_Sets.Empty_Set, T => Apply (Subst1, Beta1));
             begin
                Env1.Include (E.Param_Name, P);
                declare
-                  S2 : constant Substitution := Algorithm_M (Ctx, Env1, E.Body_Expr, Apply (S1, Beta2));
+                  Subst2 : constant Substitution := Algorithm_M (Ctx, Env1, E.Body_Expr, Apply (Subst1, Beta2));
                begin
-                  return Compose (S2, S1);
+                  return Compose (Subst2, Subst1);
                end;
             end;
 
          when Expr_Let =>
             declare
-               Beta : constant Type_Ref     := Fresh_Var (Ctx);
-               S1   : constant Substitution := Algorithm_M (Ctx, Env, E.Let_Value, Beta);
-               Env1 : constant Environment  := Apply (S1, Env);
-               T1   : constant Type_Ref     := Apply (S1, Beta);
-               P    : constant Poly_Type    := Generalize (Env1, T1);
-               Env2 : Environment           := Env1;
+               Beta   : constant Type_Ref     := Fresh_Var (Ctx);
+               Subst1 : constant Substitution := Algorithm_M (Ctx, Env, E.Let_Value, Beta);
+               Env1   : constant Environment  := Apply (Subst1, Env);
+               T1     : constant Type_Ref     := Apply (Subst1, Beta);
+               P      : constant Poly_Type    := Generalize (Env1, T1);
+               Env2   : Environment           := Env1;
             begin
                Env2.Include (E.Let_Var, P);
                declare
-                  S2 : constant Substitution := Algorithm_M (Ctx, Env2, E.Let_Body, Apply (S1, Expected));
+                  Subst2 : constant Substitution := Algorithm_M (Ctx, Env2, E.Let_Body, Apply (Subst1, Expected));
                begin
-                  return Compose (S2, S1);
+                  return Compose (Subst2, Subst1);
                end;
             end;
       end case;
